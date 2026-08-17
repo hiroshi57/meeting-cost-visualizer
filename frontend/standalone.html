@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>会議コスト可視化 — その会議、年間いくら？</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
+<style>
+body{font-family:system-ui,sans-serif;background:#f5f6f8;margin:0;padding:24px;color:#1a1a2e}
+.wrap{max-width:920px;margin:0 auto} h1{font-size:23px;color:#2b6cb0;margin-bottom:4px}
+h2{font-size:17px;margin:2px 0 8px} h3{font-size:14px;margin:12px 0 4px} .sub{color:#8a8f9c;font-size:12px}
+.card{background:#fff;border-radius:12px;padding:18px;margin:14px 0;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.stepbadge{display:inline-block;background:#2b6cb0;color:#fff;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:bold;margin-bottom:8px}
+.intro{background:#eef4fb;border-radius:12px;padding:16px;font-size:14px;line-height:1.9}
+.intro .q{font-weight:bold;color:#2b6cb0;font-size:15px;margin-top:12px}
+.intro .q:first-child{margin-top:0}
+.guide{background:#fffbeb;border:2px dashed #f0c86a;border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.8;color:#7a5b00}
+.guide b{color:#5c4400}
+table{border-collapse:collapse;width:100%;font-size:13.5px} th,td{border:1px solid #dde;padding:8px 6px;text-align:center} th{background:#eef4fb;font-size:12.5px}
+td.l,th.l{text-align:left} tbody tr:nth-child(even){background:#fafbfd}
+td input,td select{border:1.5px solid #b9cbe4;border-radius:6px;padding:6px;font-size:14px}
+td input{width:78px;text-align:right} td input.nm{width:150px;text-align:left} td select{background:#fff}
+input.big,textarea{width:100%;border:1.5px solid #b9cbe4;border-radius:8px;padding:10px;font-size:14px;font-family:inherit}
+textarea{min-height:130px;line-height:1.7}
+.metrics{display:flex;gap:12px;flex-wrap:wrap} .metric{flex:1;min-width:145px;background:#eef4fb;border-radius:10px;padding:14px;text-align:center}
+.metric .val{font-size:25px;font-weight:bold;color:#2b6cb0} .metric .l{font-size:12px;color:#556;margin-top:4px;line-height:1.5}
+.verdict{border-radius:12px;padding:18px;margin:10px 0}
+.vgood{background:#e7f7ef;border:2px solid #17a673} .vmid{background:#fff8e6;border:2px solid #f0a500} .vbad{background:#fdeeee;border:2px solid #e0533b}
+.verdict .big{font-size:20px;font-weight:bold} .verdict .desc{font-size:14px;line-height:1.9;margin-top:8px}
+.todo{background:#eef4fb;border:1px solid #d6e4f7;border-radius:10px;padding:14px;margin-top:10px}
+.todo li{margin:9px 0;line-height:1.8;font-size:14px}
+.chk{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #eef1f5;font-size:14px;line-height:1.7}
+.chk .mark{font-size:18px;flex-shrink:0;width:24px}
+button{border:0;border-radius:9px;cursor:pointer;font-size:14px;padding:10px 16px}
+button.go{background:#2b6cb0;color:#fff;font-size:15px} button.add{background:#2b6cb0;color:#fff;margin-top:10px}
+button.ghost{background:#eef2f8;color:#2b6cb0;margin-left:8px;font-size:13px;padding:9px 14px}
+button.del{background:#f7e4e4;color:#c0392b;padding:4px 10px;font-size:15px}
+.src{background:#f7f9fb;border:1px solid #e0e6ec;border-left:4px solid #8a8f9c;border-radius:8px;padding:12px;font-size:13px;color:#445;line-height:1.9;margin:10px 0}
+.src b{color:#1a1a2e} .src div{margin:4px 0}
+.note{color:#8a8f9c;font-size:12px;line-height:1.7}
+.bar{background:#eef1f5;border-radius:7px;height:28px;overflow:hidden;margin:5px 0}
+.bar>div{height:28px;border-radius:7px;display:flex;align-items:center;justify-content:flex-end;padding-right:9px;color:#fff;font-size:13px;font-weight:bold}
+.pill{padding:3px 10px;border-radius:12px;font-size:11.5px;font-weight:bold;white-space:nowrap}
+pre{background:#f7f9fb;border:1px solid #e0e6ec;border-radius:8px;padding:12px;overflow-x:auto;font-size:12.5px;line-height:1.6}
+@media(max-width:640px){body{padding:12px} .wrap{max-width:100%} h1{font-size:19px}
+ table{display:block;overflow-x:auto;white-space:nowrap;font-size:12.5px} .metrics{flex-direction:column}}
+</style>
+</head>
+<body>
+<div style="max-width:900px;margin:0 auto 4px;background:#fff8e1;border:1px solid #f0d98a;border-radius:10px;padding:10px 14px;font:13.5px system-ui;color:#7a5b00">🔬 <b>入力するだけで計算します</b>：参加人数・時間・回数・人件費を入れると、<b>年間の会議コストと削減できる金額</b>を計算します。　AIサービスへの接続は不要で、計算はすべてこの画面の中で行われます。</div>
+<div id="root"></div>
+<script type="text/plain" id="__jsx">
+// ===== 自動保存 & データ書き出し/読み込み =====
+const STORE="meetcost_v1";
+function usePersist(name,initial){
+  const [v,setV]=React.useState(function(){
+    try{var s=localStorage.getItem(STORE+":"+name);return s?JSON.parse(s):initial;}catch(e){return initial;}
+  });
+  React.useEffect(function(){try{localStorage.setItem(STORE+":"+name,JSON.stringify(v));}catch(e){}},[name,v]);
+  return [v,setV];
+}
+function collectAll(){var o={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);
+  if(k&&k.indexOf(STORE+":")===0){try{o[k.slice(STORE.length+1)]=JSON.parse(localStorage.getItem(k));}catch(e){}}}return o;}
+function DataBar(){
+  const [msg,setMsg]=React.useState(""); const fileRef=React.useRef(null);
+  const save=function(){try{
+      var blob=new Blob([JSON.stringify({_tool:STORE,_savedAt:new Date().toISOString(),data:collectAll()},null,2)],{type:"application/json"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);
+      a.download=STORE+"_"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(a.href);
+      setMsg("書き出しました");setTimeout(function(){setMsg("");},2500);}catch(e){setMsg("書き出しに失敗しました");}};
+  const load=function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var rd=new FileReader();
+    rd.onload=function(){try{var j=JSON.parse(rd.result);if(!j||!j.data)throw new Error("形式が違います");
+      Object.keys(j.data).forEach(function(k){localStorage.setItem(STORE+":"+k,JSON.stringify(j.data[k]));});
+      location.reload();}catch(err){setMsg("読み込めませんでした");}};rd.readAsText(f);};
+  const clear=function(){if(!confirm("入力した内容をすべて消して最初の状態に戻します。よろしいですか？"))return;
+    var del=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf(STORE+":")===0)del.push(k);}
+    del.forEach(function(k){localStorage.removeItem(k);});location.reload();};
+  return (<div style={{background:"#f2f7f4",border:"1px solid #cfe3d8",borderRadius:10,padding:"9px 12px",
+      margin:"0 0 12px",fontSize:13,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",color:"#0f5c3f"}}>
+    <span>💾 <b>入力した内容はこの端末に自動保存されます</b>（閉じても消えません）</span>
+    <span style={{flex:1}}></span>
+    <button onClick={save} style={{border:0,borderRadius:7,background:"#17a673",color:"#fff",padding:"6px 11px",cursor:"pointer",fontSize:12.5}}>データを書き出す</button>
+    <button onClick={function(){fileRef.current&&fileRef.current.click();}} style={{border:0,borderRadius:7,background:"#e7f0eb",color:"#0f5c3f",padding:"6px 11px",cursor:"pointer",fontSize:12.5}}>読み込む</button>
+    <button onClick={clear} style={{border:0,borderRadius:7,background:"#f7e4e4",color:"#c0392b",padding:"6px 11px",cursor:"pointer",fontSize:12.5}}>最初に戻す</button>
+    <input ref={fileRef} type="file" accept="application/json" onChange={load} style={{display:"none"}}/>
+    {msg && <span style={{fontWeight:"bold"}}>{msg}</span>}
+  </div>);
+}
+function Intro(){
+  return (<div className="card"><div className="intro">
+    <div className="q">🎯 このツールで分かること</div><div>「その会議、年間いくらかかっているか」を金額で出します。誰も数字を知らないまま続いている会議に、判断材料を与えます。</div>
+    <div className="q">🙋 こんな人向け</div><div>・会議を減らしたいが<b>説得材料がない</b>管理職<br/>・業務効率化を任された<b>経営企画・情報システム</b><br/>・自分の時間の使い方を見直したい人</div>
+    <div className="q">📝 やること</div><div>下の表に、いつもある会議を並べて<b>人数・時間・回数</b>を入れるだけです。計算は自動です。</div>
+  </div></div>);
+}
+
+const M0=[
+  {name:"全体定例",       people:25, min:60, perMonth:4,  need:8,  online:true},
+  {name:"部内進捗MTG",    people:8,  min:60, perMonth:4,  need:6,  online:true},
+  {name:"案件キックオフ", people:6,  min:90, perMonth:2,  need:6,  online:false},
+  {name:"クライアント定例",people:5, min:60, perMonth:4,  need:5,  online:true},
+  {name:"朝会",           people:12, min:15, perMonth:20, need:12, online:true},
+];
+const yen=n=>Math.round(n).toLocaleString();
+
+function calcOne(m,rate){
+  const hoursPerTime=m.people*m.min/60;              // 1回あたり延べ時間
+  const hoursYear=hoursPerTime*m.perMonth*12;        // 年間の延べ時間
+  const costYear=hoursYear*rate;                     // 年間コスト
+  const overPeople=Math.max(0,m.people-m.need);      // 出なくてよい人数
+  const wasteYear=overPeople*m.min/60*m.perMonth*12*rate; // 過剰参加の年間ロス
+  return {hoursPerTime,hoursYear,costYear,overPeople,wasteYear};
+}
+
+function App(){
+  const [rows,setRows]=usePersist("rows",M0);
+  const [rate,setRate]=usePersist("rate",3500);
+  const [cutMin,setCutMin]=usePersist("cutMin",15);
+  const upd=(i,k,v)=>setRows(rs=>rs.map((r,j)=>j===i?{...r,[k]:(k==="name")?v:(k==="online"?v:(Number(v)||0))}:r));
+  const del=i=>setRows(rs=>rs.filter((_,j)=>j!==i));
+  const add=()=>setRows(rs=>[...rs,{name:"新しい会議",people:5,min:60,perMonth:4,need:5,online:true}]);
+
+  const data=rows.map(m=>({m,...calcOne(m,rate)})).sort((a,b)=>b.costYear-a.costYear);
+  const total=data.reduce((a,x)=>a+x.costYear,0);
+  const totalHours=data.reduce((a,x)=>a+x.hoursYear,0);
+  const wasteTotal=data.reduce((a,x)=>a+x.wasteYear,0);
+  // 時間短縮の効果（各会議をcutMin分だけ短くした場合）
+  const cutSaving=rows.reduce((a,m)=>{
+    const newMin=Math.max(5,m.min-cutMin);
+    return a+(m.min-newMin)/60*m.people*m.perMonth*12*rate;},0);
+  const maxCost=Math.max(1,...data.map(x=>x.costYear));
+  const top=data[0];
+  const fte=totalHours/1800; // 年間1800時間を1人分として換算
+
+  return (<div className="wrap"><DataBar/>
+    <h1>会議コスト可視化</h1>
+    <div className="sub" style={{marginBottom:10}}>その会議、年間いくらかかっているかを計算します。</div>
+    <Intro/>
+
+    <div className="card">
+      <div className="stepbadge">STEP 1</div>
+      <h2>会議の情報を入れてください</h2>
+      <div className="guide">
+        👇 <b>ここを触ってください。</b>数字を変えると下の結果がすぐ変わります。<br/>
+        ・<b>参加人数</b>…毎回だいたい何人出ているか<br/>
+        ・<b>1回の時間</b>…分で入力（1時間なら60）<br/>
+        ・<b>月の回数</b>…週1回なら4、毎日なら20<br/>
+        ・<b>本当に必要な人数</b>…その場で発言・判断する人だけの数（分からなければ参加人数と同じでOK）
+      </div>
+      <table style={{marginTop:12}}><thead><tr>
+        <th className="l">会議の名前</th><th>参加人数</th><th>1回の時間</th><th>月の回数</th><th>本当に必要<br/>な人数</th><th></th></tr></thead>
+        <tbody>{rows.map((m,i)=>(<tr key={i}>
+          <td className="l"><input className="nm" value={m.name} onChange={e=>upd(i,"name",e.target.value)}/></td>
+          <td><input value={m.people} onChange={e=>upd(i,"people",e.target.value)}/> 人</td>
+          <td><input value={m.min} onChange={e=>upd(i,"min",e.target.value)}/> 分</td>
+          <td><input value={m.perMonth} onChange={e=>upd(i,"perMonth",e.target.value)}/> 回</td>
+          <td><input value={m.need} onChange={e=>upd(i,"need",e.target.value)}/> 人</td>
+          <td><button className="del" onClick={()=>del(i)}>×</button></td></tr>))}
+        </tbody></table>
+      <button className="add" onClick={add}>＋ 会議を1つ追加</button>
+      <button className="ghost" onClick={()=>setRows(M0)}>最初の例に戻す</button>
+      <div style={{marginTop:12,fontSize:14}}>
+        1時間あたりの人件費 <input style={{width:90,border:"1.5px solid #b9cbe4",borderRadius:6,padding:"6px",textAlign:"right",fontSize:14}}
+          type="number" value={rate} onChange={e=>setRate(Number(e.target.value)||0)}/> 円
+        <span className="sub">（年収の目安 ÷ 1800時間。年収600万なら約3,300円）</span>
+      </div>
+      <div className="src">
+        <b>❓ この数字はどこから取るの？</b>
+        <div>・<b>参加人数・回数</b>：カレンダー（Outlook/Googleカレンダー）の招待人数と繰り返し設定を見れば分かります。</div>
+        <div>・<b>人件費</b>：正確な給与を使う必要はありません。<b>平均年収 ÷ 1800時間</b>で十分です。会社負担分を含めるなら1.3倍してください。</div>
+        <div>・<b>いま表示されている5件は使い方を示す例です</b>（架空の会議です）。自社の会議に書き換えてお使いください。</div>
+      </div>
+    </div>
+
+    <div className="card">
+      <div className="stepbadge">STEP 2</div>
+      <h2>結果：この会議たちの年間コスト</h2>
+      <div className="metrics">
+        <div className="metric"><div className="val">{yen(total/10000)}万円</div><div className="l">年間の会議コスト<br/>（合計）</div></div>
+        <div className="metric"><div className="val">{yen(totalHours)}時間</div><div className="l">年間の延べ会議時間</div></div>
+        <div className="metric"><div className="val">{fte.toFixed(1)}人分</div><div className="l">1年間ずっと会議している<br/>人数に換算すると</div></div>
+        <div className="metric"><div className="val">{yen(wasteTotal/10000)}万円</div><div className="l">「出なくてよい人」の<br/>年間コスト</div></div>
+      </div>
+
+      <h3>どの会議にお金がかかっているか</h3>
+      {data.map((x,i)=>(<div key={i}>
+        <div style={{fontSize:13,color:"#445",marginTop:8}}>{x.m.name}
+          <span className="sub">（{x.m.people}人 × {x.m.min}分 × 月{x.m.perMonth}回）</span></div>
+        <div className="bar"><div style={{width:Math.max(6,x.costYear/maxCost*100)+"%",background:i===0?"#e0533b":"#2b6cb0"}}>
+          {yen(x.costYear/10000)}万円/年</div></div>
+      </div>))}
+      <div className="sub" style={{marginTop:8}}>※計算式：参加人数 × 時間 × 回数 × 12ヶ月 × 時間単価。入力値だけを使った実計算です。</div>
+    </div>
+
+    <div className="card">
+      <div className="stepbadge">STEP 3</div>
+      <h2>削減シミュレーション</h2>
+      <div className="guide">
+        👇 <b>ここを動かしてください。</b>すべての会議を何分短くするかを変えると、浮く金額が変わります。
+      </div>
+      <div style={{margin:"12px 0",fontSize:15}}>
+        すべての会議を <b style={{fontSize:20,color:"#2b6cb0"}}>{cutMin}分</b> 短くすると…
+        <input type="range" min="0" max="30" step="5" value={cutMin} onChange={e=>setCutMin(Number(e.target.value))} style={{width:"100%",marginTop:8}}/>
+      </div>
+      <div className={"verdict "+(cutSaving>=total*0.15?"vgood":cutSaving>0?"vmid":"vbad")}>
+        <div className="big">年間 約 {yen(cutSaving/10000)}万円 が浮きます</div>
+        <div className="desc">
+          {cutMin===0
+            ? "スライダーを動かすと効果が出ます。まずは全会議を5分短くするところから試してください。"
+            : <span>60分の会議を{60-cutMin}分にする、というだけの変更です。全体コスト{yen(total/10000)}万円のうち
+              <b> 約{Math.round(cutSaving/total*100)}%</b>にあたります。</span>}
+        </div>
+      </div>
+      <div className="todo">
+        <b>今日からできること（効果の大きい順）</b>
+        <ul>
+          {top && top.overPeople>0 && <li><b>「{top.m.name}」の参加者を{top.m.people}人 → {top.m.need}人に絞る</b>：これだけで年間 <b>{yen(top.wasteYear/10000)}万円</b>。
+            出席が必要ない人には<b>議事録の共有だけ</b>にしてください。</li>}
+          <li><b>会議時間の初期値を60分から45分に変える</b>：カレンダーの既定設定を変えるだけで、全社に効きます。</li>
+          {top && <li><b>最もコストが高いのは「{top.m.name}」（年間{yen(top.costYear/10000)}万円）</b>：この会議だけでも、頻度を半分にできないか検討してください（半減で約{yen(top.costYear/2/10000)}万円）。</li>}
+          <li><b>「報告だけ」の議題を会議から外す</b>：資料の事前共有に変え、会議は議論と決定だけにします。</li>
+          <li><b>この結果を書き出して共有する</b>：上の「データを書き出す」でJSONを保存し、経営会議の資料に添えてください。</li>
+        </ul>
+      </div>
+    </div>
+
+    <p className="note">※金額は入力された人数・時間・回数・単価だけを使った実計算です。人件費単価は概算のため、実際の給与体系とは異なります。<br/>
+    ※「出なくてよい人のコスト」は、入力された「本当に必要な人数」との差から計算しています。この人数の判断はご自身で行ってください。<br/>
+    ※会議そのものに価値がないという意味ではありません。<b>金額を知ったうえで、その価値があるか判断する</b>ためのツールです。</p>
+  </div>);
+}
+
+</script>
+<script>(function(){var src=document.getElementById("__jsx").textContent;var out=Babel.transform(src,{presets:[["react",{runtime:"classic"}]]}).code;(0,eval)(out);ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));})();</script>
+</body></html>
